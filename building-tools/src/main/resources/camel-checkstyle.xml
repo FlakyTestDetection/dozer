@@ -248,7 +248,7 @@ lengths, if/try depths, etc...
 
 
         <!--<module name="RedundantThrows"/>-->
-
+        <module name="PackageDeclaration"/>
         <!--
         <module name="JUnitTestCase"/>
         -->
@@ -264,7 +264,7 @@ lengths, if/try depths, etc...
         -->
 
         <!--<module name="ParameterAssignment"/>-->
-
+        <module name="ExplicitInitialization"/>
         <!-- <module name="AnnotationUseStyle"/> -->
         <!-- <module name="MissingDeprecated"/> -->
         <!--
@@ -280,14 +280,14 @@ lengths, if/try depths, etc...
         <!--<module name="MultipleStringLiterals"/>-->
         <module name="MultipleVariableDeclarations"/>
         <!--<module name="RequireThis"/>-->
-
+        <module name="UnnecessaryParentheses"/>
 
 
 
         <!-- Checks for class design                         -->
         <!-- See http://checkstyle.sf.net/config_design.html -->
         <!--<module name="DesignForExtension"/>-->
-        
+        <module name="FinalClass"/>
         <module name="HideUtilityClassConstructor"/>
         <!-- We still do enum style interfaces
         <module name="InterfaceIsType"/>
