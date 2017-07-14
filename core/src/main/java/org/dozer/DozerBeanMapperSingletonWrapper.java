@@ -15,19 +15,17 @@
  */
 package org.dozer;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.dozer.util.DozerConstants;
-
 /**
  * Public Singleton wrapper for the DozerBeanMapper. Only supports a single mapping file named dozerBeanMapping.xml, so
  * configuration is very limited. Instead of using the DozerBeanMapperSingletonWrapper, it is recommended that the
  * DozerBeanMapper(MapperIF) instance is configured via an IOC framework, such as Spring, with singleton property set to
  * "true"
  *
+ * @deprecated Will be removed in version 6.2. Please use {@link DozerBeanMapperBuilder#buildDefault()}.
+ *
  * @author garsombke.franz
  */
+@Deprecated
 public final class DozerBeanMapperSingletonWrapper {
 
     private static Mapper instance;
@@ -36,12 +34,13 @@ public final class DozerBeanMapperSingletonWrapper {
 
     }
 
+    /**
+     * @deprecated Will be removed in version 6.2. Please use {@link DozerBeanMapperBuilder#buildDefault()}.
+     */
+    @Deprecated
     public static synchronized Mapper getInstance() {
         if (instance == null) {
-            List<String> mappingFiles = new ArrayList<String>();
-            mappingFiles.add(DozerConstants.DEFAULT_MAPPING_FILE);
-
-            instance = new DozerBeanMapper(mappingFiles);
+            instance = DozerBeanMapperBuilder.buildDefault();
         }
 
         return instance;

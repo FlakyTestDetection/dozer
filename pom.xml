@@ -30,7 +30,7 @@
     <groupId>com.github.dozermapper</groupId>
     <artifactId>dozer-parent</artifactId>
     <packaging>pom</packaging>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>6.1.0-SNAPSHOT</version>
     <name>Dozer :: Parent</name>
     <description>Dozer is a powerful Java Bean to Java Bean mapper that recursively copies data from one object to another</description>
 
@@ -72,18 +72,17 @@
         </mailingList>
     </mailingLists>
 
-    <prerequisites>
-        <maven>3.3.1</maven>
-    </prerequisites>
-
     <modules>
         <module>building-tools</module>
         <module>bom-dependencies</module>
         <module>plugins-parent</module>
+        <module>schema</module>
         <module>core</module>
         <module>spring</module>
         <module>proto</module>
+        <module>osgi-tests-model</module>
         <module>osgi-test</module>
+        <module>jmh-tests</module>
     </modules>
 
     <properties>
@@ -97,23 +96,24 @@
         <license.failIfUnknown>true</license.failIfUnknown>
 
         <!-- Top level versions; alphabetical order -->
-        <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
+        <maven-enforcer-plugin.version>1.4.1</maven-enforcer-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <license-maven-plugin.version>3.0</license-maven-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
         <versions-maven-plugin.version>2.3</versions-maven-plugin.version>
 
-        <building-tools.version>6.0.0-SNAPSHOT</building-tools.version>
+        <building-tools.version>6.1.0-SNAPSHOT</building-tools.version>
     </properties>
 
     <build>
+        <defaultGoal>install</defaultGoal>
         <pluginManagement>
             <plugins>
                 <!-- Alphabetical order -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>${maven-assembly-plugin.version}</version>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven-enforcer-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -142,10 +142,25 @@
             <!-- Alphabetical order -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <skipAssembly>true</skipAssembly>
-                </configuration>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>3.3.1</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>1.8</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>com.mycila</groupId>
@@ -154,8 +169,10 @@
                     <header>LICENSE-HEADER.txt</header>
                     <excludes>
                         <exclude>docs/**</exclude>
-                        <exclude>website/**</exclude>
                         <exclude>.travis/**</exclude>
+                        <exclude>.mvn/**</exclude>
+                        <exclude>mvnw</exclude>
+                        <exclude>mvnw.cmd</exclude>
                         <exclude>LICENSE-HEADER.txt</exclude>
                         <exclude>LICENSE.md</exclude>
                         <exclude>README.md</exclude>
@@ -164,6 +181,7 @@
                         <exclude>**/spring.schemas</exclude>
                         <exclude>**/spring.handlers</exclude>
                         <exclude>**/mockito-extensions/**</exclude>
+                        <exclude>**/gen-src/**</exclude>
                     </excludes>
                     <mapping>
                         <java>SLASHSTAR_STYLE</java>
@@ -185,13 +203,6 @@
                 </dependencies>
             </plugin>
         </plugins>
-        <extensions>
-            <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-ssh</artifactId>
-                <version>2.2</version>
-            </extension>
-        </extensions>
     </build>
 
     <profiles>

@@ -24,13 +24,18 @@
     <parent>
         <groupId>com.github.dozermapper</groupId>
         <artifactId>dozer-plugins-parent</artifactId>
-        <version>6.0.0-SNAPSHOT</version>
+        <version>6.1.0-SNAPSHOT</version>
         <relativePath>../plugins-parent</relativePath>
     </parent>
 
     <artifactId>dozer-spring</artifactId>
     <packaging>jar</packaging>
     <name>Dozer :: Spring 4</name>
+
+    <properties>
+        <!-- NOTE: Needs to be removed in future -->
+        <findbugs.skip>true</findbugs.skip>
+    </properties>
 
     <dependencies>
         <dependency>

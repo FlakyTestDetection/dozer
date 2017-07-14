@@ -33,7 +33,7 @@ public final class DozerConstants {
 
   private DozerConstants() {}
 
-  public static final String CURRENT_VERSION = "6.0.0-SNAPSHOT";
+  public static final String CURRENT_VERSION = "6.1.0-SNAPSHOT";
 
   public static final boolean DEFAULT_WILDCARD_POLICY = true;
   public static final boolean DEFAULT_ERROR_POLICY = true;
@@ -49,7 +49,7 @@ public final class DozerConstants {
   public static final boolean DEFAULT_STATISTICS_ENABLED = false;
   public static final boolean DEFAULT_EL_ENABLED = false;
 
-  public static final String XSD_NAME = "beanmapping.xsd";
+  public static final String XSD_NAME = "bean-mapping.xsd";
   public static final String CONFIG_FILE_SYS_PROP = "dozer.configuration"; // i.e)-Ddozer.configuration=somefile.properties
   public static final String DEBUG_SYS_PROP = "dozer.debug";// i.e)-Ddozer.debug=true
   public static final String ITERATE = "iterate";

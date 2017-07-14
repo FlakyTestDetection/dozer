@@ -17,7 +17,7 @@ package org.dozer.functional_tests;
 
 import java.util.List;
 
-import org.dozer.DozerBeanMapper;
+import org.dozer.Mapper;
 import org.dozer.metadata.ClassMappingMetadata;
 import org.dozer.metadata.FieldMappingMetadata;
 import org.dozer.metadata.MappingMetadata;
@@ -28,14 +28,13 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-
 /**
  * Tests for the new mapping catalogue interfaces.
  * @author  florian.kunz
  */
 public class MetadataFieldTest extends AbstractFunctionalTest {
     
-    private static final String MAPPING_FILE = "metadataTest.xml";
+    private static final String MAPPING_FILE = "mappings/metadataTest.xml";
     private static final String CLASS_A = "org.dozer.vo.metadata.ClassA";
     private static final String CLASS_B = "org.dozer.vo.metadata.ClassB";
     private static final String NONEXISTENTFIELD = "noField";
@@ -47,7 +46,7 @@ public class MetadataFieldTest extends AbstractFunctionalTest {
     
     @Before
     public void setup() {
-        DozerBeanMapper beanMapper = (DozerBeanMapper) getMapper(MAPPING_FILE);
+        Mapper beanMapper = getMapper(MAPPING_FILE);
         mapMetadata = beanMapper.getMappingMetadata();
     }
     

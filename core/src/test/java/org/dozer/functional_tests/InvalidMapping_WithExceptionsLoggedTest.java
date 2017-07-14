@@ -15,7 +15,6 @@
  */
 package org.dozer.functional_tests;
 
-import static junit.framework.Assert.fail;
 
 import org.dozer.MappingException;
 import org.hamcrest.Matchers;
@@ -24,6 +23,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.fail;
 
 public class InvalidMapping_WithExceptionsLoggedTest extends AbstractFunctionalTest {
 
@@ -51,7 +52,7 @@ public class InvalidMapping_WithExceptionsLoggedTest extends AbstractFunctionalT
         testWrongClassNameEE.expectMessage("java.lang.ClassNotFoundException: org.dozer.vo.TestObjectNNNNNNN");
         testWrongClassNameEE.expect(MappingException.class);
 
-        mapper = getMapper("invalidmapping1.xml");
+        mapper = getMapper("mappings/invalidmapping1.xml");
         mapper.map("1", Integer.class);
 
         fail();
@@ -59,12 +60,12 @@ public class InvalidMapping_WithExceptionsLoggedTest extends AbstractFunctionalT
 
     @Test
     public void testNoFieldB() {
-        LOG.error("WithExceptionsLoggedTest; 'MappingException: cvc-complex-type.2.4.b: The content of element 'field' is not complete. One of '{\"http://dozer.sourceforge.net\":b}' is expected'");
+        LOG.error("WithExceptionsLoggedTest; 'MappingException: cvc-complex-type.2.4.b: The content of element 'field' is not complete. One of '{\"http://dozermapper.github.io/schema/bean-mapping\":b}' is expected'");
 
-        testNoFieldBEE.expectMessage(Matchers.containsString("cvc-complex-type.2.4.b: The content of element 'field' is not complete. One of '{\"http://dozer.sourceforge.net\":b}' is expected"));
+        testNoFieldBEE.expectMessage(Matchers.containsString("cvc-complex-type.2.4.b: The content of element 'field' is not complete. One of '{\"http://dozermapper.github.io/schema/bean-mapping\":b}' is expected"));
         testNoFieldBEE.expect(MappingException.class);
 
-        mapper = getMapper("invalidmapping2.xml");
+        mapper = getMapper("non-strict/invalidmapping2.xml");
         mapper.map("1", Integer.class);
 
         fail();
@@ -77,7 +78,7 @@ public class InvalidMapping_WithExceptionsLoggedTest extends AbstractFunctionalT
         testEmptyFieldBEE.expectMessage("Field name can not be empty");
         testEmptyFieldBEE.expect(MappingException.class);
 
-        mapper = getMapper("invalidmapping3.xml");
+        mapper = getMapper("mappings/invalidmapping3.xml");
         mapper.map("1", Integer.class);
 
         fail();
@@ -90,7 +91,7 @@ public class InvalidMapping_WithExceptionsLoggedTest extends AbstractFunctionalT
         testFieldDoesNotExistEE.expectMessage("No read or write method found for field (fielddoesnotexist) in class (class org.dozer.vo.TestObjectPrime)");
         testFieldDoesNotExistEE.expect(MappingException.class);
 
-        mapper = getMapper("invalidmapping4.xml");
+        mapper = getMapper("mappings/invalidmapping4.xml");
         mapper.map("1", Integer.class);
 
         fail();
@@ -98,12 +99,12 @@ public class InvalidMapping_WithExceptionsLoggedTest extends AbstractFunctionalT
 
     @Test
     public void testNoClassA() {
-        LOG.error("WithExceptionsLoggedTest; 'MappingException: cvc-complex-type.2.4.a: Invalid content was found starting with element 'class-b'. One of '{\"http://dozer.sourceforge.net\":class-a}' is expected.'");
+        LOG.error("WithExceptionsLoggedTest; 'MappingException: cvc-complex-type.2.4.a: Invalid content was found starting with element 'class-b'. One of '{\"http://dozermapper.github.io/schema/bean-mapping\":class-a}' is expected.'");
 
-        testNoClassAEE.expectMessage(Matchers.containsString("cvc-complex-type.2.4.a: Invalid content was found starting with element 'class-b'. One of '{\"http://dozer.sourceforge.net\":class-a}' is expected."));
+        testNoClassAEE.expectMessage(Matchers.containsString("cvc-complex-type.2.4.a: Invalid content was found starting with element 'class-b'. One of '{\"http://dozermapper.github.io/schema/bean-mapping\":class-a}' is expected."));
         testNoClassAEE.expect(MappingException.class);
 
-        mapper = getMapper("invalidmapping5.xml");
+        mapper = getMapper("non-strict/invalidmapping5.xml");
         mapper.map("1", Integer.class);
 
         fail();

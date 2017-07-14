@@ -24,6 +24,7 @@ import java.util.List;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
+import org.dozer.config.BeanContainer;
 import org.dozer.util.MappingUtils;
 import org.dozer.vo.TestObject;
 import org.dozer.vo.jaxb.employee.EmployeeWithInnerClass;
@@ -41,12 +42,12 @@ public class JAXBBeansMappingTest extends AbstractFunctionalTest {
   @Before
   public void setUp() throws Exception {
     super.setUp();
-    mapper = getMapper("jaxbBeansMapping.xml");
+    mapper = getMapper("mappings/jaxbBeansMapping.xml");
   }
 
   @Test
   public void testTrivial() {
-    Class<?> type = MappingUtils.loadClass("org.dozer.vo.jaxb.employee.EmployeeType");
+    Class<?> type = MappingUtils.loadClass("org.dozer.vo.jaxb.employee.EmployeeType", new BeanContainer());
     assertNotNull(type);
   }
 

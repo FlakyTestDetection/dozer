@@ -19,12 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dozer.CustomConverter;
-import org.dozer.DozerBeanMapper;
+import org.dozer.DozerBeanMapperBuilder;
+import org.dozer.Mapper;
 import org.dozer.classmap.RelationshipType;
 import org.dozer.loader.api.BeanMappingBuilder;
 import org.dozer.loader.api.FieldsMappingOptions;
 import org.dozer.loader.api.TypeMappingOptions;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.dozer.loader.api.FieldsMappingOptions.copyByReference;
@@ -45,13 +45,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class DozerBuilderTest {
-
-  private DozerBeanMapper mapper;
-
-  @Before
-  public void setUp() {
-    mapper = new DozerBeanMapper();
-  }
 
   @Test
   public void testApi() {
@@ -100,8 +93,10 @@ public class DozerBuilderTest {
       }
     };
 
-    mapper.addMapping(builder);
-         
+    Mapper mapper = DozerBeanMapperBuilder.create()
+            .withMappingBuilder(builder)
+            .build();
+
     mapper.map(1, String.class);
   }
 
@@ -119,7 +114,9 @@ public class DozerBuilderTest {
       }
     };
 
-    mapper.addMapping(builder);
+    Mapper mapper = DozerBeanMapperBuilder.create()
+            .withMappingBuilder(builder)
+            .build();
 
     IterateBean bean = new IterateBean();
     bean.getIntegers().add(new Integer("1"));
@@ -161,8 +158,8 @@ public class DozerBuilderTest {
 
   public static class IterateBean {
 
-    List<Integer> integers = new ArrayList<Integer>();
-    List<String> strings = new ArrayList<String>();
+    List<Integer> integers = new ArrayList<>();
+    List<String> strings = new ArrayList<>();
 
     public List<Integer> getIntegers() {
       return integers;

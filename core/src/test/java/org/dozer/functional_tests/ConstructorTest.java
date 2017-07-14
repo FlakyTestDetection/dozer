@@ -21,29 +21,27 @@ import java.util.GregorianCalendar;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNotSame;
-
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
-import org.dozer.DozerBeanMapper;
+import org.dozer.DozerBeanMapperBuilder;
+import org.dozer.Mapper;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-
-
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 
 /**
  * @author Dmitry Buzdin
  */
 public class ConstructorTest extends AbstractFunctionalTest {
 
-  private DozerBeanMapper beanMapper;
+  private Mapper beanMapper;
 
   @Before
   public void setUp() {
-    beanMapper = new DozerBeanMapper();
+    beanMapper = DozerBeanMapperBuilder.buildDefault();
   }
 
   @Test

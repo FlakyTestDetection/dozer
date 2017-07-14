@@ -15,7 +15,8 @@
  */
 package org.dozer.functional_tests;
 
-import org.dozer.DozerBeanMapper;
+import org.dozer.DozerBeanMapperBuilder;
+import org.dozer.Mapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,11 +26,11 @@ import static org.junit.Assert.assertThat;
 
 public class CircularDependenciesTest extends AbstractFunctionalTest {
 
-  private DozerBeanMapper mapper;
+  private Mapper mapper;
 
   @Before
   public void setUp() {
-    mapper = new DozerBeanMapper();
+    mapper = DozerBeanMapperBuilder.buildDefault();
   }
 
   @Test

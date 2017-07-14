@@ -1,6 +1,5 @@
 [![Build Status](https://travis-ci.org/DozerMapper/dozer.svg?branch=master)](https://travis-ci.org/DozerMapper/dozer)
-[![Dependency Status](https://www.versioneye.com/java/net.sf.dozer:dozer/badge?style=flat-square)](https://www.versioneye.com/java/net.sf.dozer:dozer)
-[![Release Version](https://img.shields.io/maven-central/v/net.sf.dozer/dozer.svg?maxAge=2592000)](https://mvnrepository.com/artifact/net.sf.dozer/dozer)
+[![Release Version](https://img.shields.io/maven-central/v/com.github.dozermapper/dozer-core.svg?maxAge=2592000)](https://mvnrepository.com/artifact/com.github.dozermapper/dozer-core)
 [![License](https://img.shields.io/hexpm/l/plug.svg?maxAge=2592000)]()
 
 # Dozer
@@ -32,13 +31,8 @@ If you are using Maven, simply copy-paste this dependency to your project.
 <dependency>
     <groupId>com.github.dozermapper</groupId>
     <artifactId>dozer-core</artifactId>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>6.0.0</version>
 </dependency>
-```
-
-Apache Ivy users can copy-paste the following line instead.
-```XML
-<dependency org="net.sf.dozer" name="dozer" rev="5.5.1"/>
 ```
 
 ## Simple Example
@@ -56,7 +50,7 @@ Apache Ivy users can copy-paste the following line instead.
 ```Java
 SourceClassName sourceObject = ...
 
-Mapper mapper = new DozerBeanMapper();
+Mapper mapper = DozerBeanMapperBuilder.createDefault();
 DestinationObject destObject = mapper.map(sourceObject, DestinationClassName.class);
 
 assertTrue(destObject.getYourDestinationFieldName().equals(sourceObject.getYourSourceFieldName));

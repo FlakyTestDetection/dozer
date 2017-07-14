@@ -15,7 +15,7 @@
  */
 package org.dozer.functional_tests;
 
-import org.dozer.DozerBeanMapperSingletonWrapper;
+import org.dozer.DozerBeanMapperBuilder;
 import org.dozer.Mapper;
 import org.dozer.vo.LoopObjectChild;
 import org.dozer.vo.LoopObjectParent;
@@ -47,7 +47,7 @@ public class BiDirectionalMappingTest extends AbstractFunctionalTest {
 
   @Test
   public void testBidirectionalWithCustomMapping() throws Exception {
-    Mapper mapper = getMapper(new String[] { "infiniteLoopMapping.xml" });
+    Mapper mapper = getMapper(new String[] {"mappings/infiniteLoopMapping.xml"});
     LoopObjectParent loopObjectParent = newInstance(LoopObjectParent.class);
     LoopObjectChild loopObjectChild = newInstance(LoopObjectChild.class);
     loopObjectChild.setParent(loopObjectParent);
@@ -75,7 +75,9 @@ public class BiDirectionalMappingTest extends AbstractFunctionalTest {
       a.getCs()[i] = c;
     }
 
-    Mapper mapper = DozerBeanMapperSingletonWrapper.getInstance();
+    Mapper mapper = DozerBeanMapperBuilder.create()
+            .withMappingFiles("testDozerBeanMapping.xml")
+            .build();
     mapper.map(a, b);
 
     // Check if C object nr i holds value i after the mapping
