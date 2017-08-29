@@ -17,9 +17,14 @@ package org.dozer.functional_tests;
 
 import org.dozer.DozerBeanMapperBuilder;
 import org.dozer.Mapper;
+import org.dozer.config.SettingsDefaults;
+import org.dozer.config.SettingsKeys;
+import org.dozer.el.DefaultELEngine;
+import org.dozer.el.ELExpressionFactory;
 import org.dozer.functional_tests.runner.InstantiatorHolder;
 import org.dozer.functional_tests.runner.Proxied;
 import org.dozer.functional_tests.support.TestDataFactory;
+import org.dozer.loader.xml.ExpressionElementReader;
 import org.dozer.util.DozerConstants;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -46,12 +51,24 @@ public abstract class AbstractFunctionalTest {
   public void setUp() throws Exception {
     System.setProperty("log4j.debug", "true");
     System.setProperty(DozerConstants.DEBUG_SYS_PROP, "true");
+    System.setProperty(SettingsKeys.CONFIG_FILE_SYS_PROP, SettingsDefaults.LEGACY_PROPERTIES_FILE);
+
     mapper = DozerBeanMapperBuilder.buildDefault();
   }
 
   protected Mapper getMapper(String ... mappingFiles) {
     return DozerBeanMapperBuilder.create()
             .withMappingFiles(mappingFiles)
+            .build();
+  }
+
+  protected Mapper getMapperWithEL(String ... mappingFiles) {
+    DefaultELEngine elEngine = new DefaultELEngine(ELExpressionFactory.newInstance());
+
+    return DozerBeanMapperBuilder.create()
+            .withMappingFiles(mappingFiles)
+            .withELEngine(elEngine)
+            .withElementReader(new ExpressionElementReader(elEngine))
             .build();
   }
 

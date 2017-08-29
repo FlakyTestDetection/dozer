@@ -16,7 +16,6 @@
 package org.dozer;
 
 import java.io.InputStream;
-import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,15 +35,19 @@ import org.dozer.classmap.Configuration;
 import org.dozer.classmap.MappingFileData;
 import org.dozer.classmap.generator.BeanMappingGenerator;
 import org.dozer.config.BeanContainer;
-import org.dozer.config.GlobalSettings;
+import org.dozer.config.Settings;
+import org.dozer.el.ELEngine;
+import org.dozer.el.NoopELEngine;
 import org.dozer.event.DozerEventManager;
 import org.dozer.factory.DestBeanCreator;
 import org.dozer.loader.CustomMappingsLoader;
 import org.dozer.loader.LoadMappingsResult;
 import org.dozer.loader.MappingsParser;
 import org.dozer.loader.api.BeanMappingBuilder;
+import org.dozer.loader.xml.ElementReader;
 import org.dozer.loader.xml.MappingFileReader;
 import org.dozer.loader.xml.MappingStreamReader;
+import org.dozer.loader.xml.SimpleElementReader;
 import org.dozer.loader.xml.XMLParser;
 import org.dozer.loader.xml.XMLParserFactory;
 import org.dozer.metadata.DozerMappingMetadata;
@@ -52,10 +55,6 @@ import org.dozer.metadata.MappingMetadata;
 import org.dozer.osgi.Activator;
 import org.dozer.osgi.OSGiClassLoader;
 import org.dozer.propertydescriptor.PropertyDescriptorFactory;
-import org.dozer.stats.StatisticType;
-import org.dozer.stats.StatisticsInterceptor;
-import org.dozer.stats.StatisticsManager;
-import org.dozer.stats.StatisticsManagerImpl;
 import org.dozer.util.DefaultClassLoader;
 import org.dozer.util.DozerClassLoader;
 import org.dozer.util.MappingValidator;
@@ -84,8 +83,7 @@ public class DozerBeanMapper implements Mapper {
 
   private final AtomicBoolean initializing = new AtomicBoolean(false);
   private final CountDownLatch ready = new CountDownLatch(1);
-  private final StatisticsManager statsMgr;
-  private final GlobalSettings globalSettings;
+  private final Settings settings;
   private final CustomMappingsLoader customMappingsLoader;
   private final XMLParserFactory xmlParserFactory;
   private final DozerInitializer dozerInitializer;
@@ -96,6 +94,9 @@ public class DozerBeanMapper implements Mapper {
   private final BeanMappingGenerator beanMappingGenerator;
   private final PropertyDescriptorFactory propertyDescriptorFactory;
 
+  private final ELEngine elEngine;
+  private final ElementReader elementReader;
+
   /*
    * Accessible for custom injection
    */
@@ -104,7 +105,6 @@ public class DozerBeanMapper implements Mapper {
   private final List<MappingFileData> mappingsFileData;
   private final List<DozerEventListener> eventListeners;
   private final Map<String, CustomConverter> customConvertersWithId;
-
   private CustomFieldMapper customFieldMapper;
 
   /*
@@ -116,50 +116,10 @@ public class DozerBeanMapper implements Mapper {
   private final CacheManager cacheManager;
   private DozerEventManager eventManager;
 
-  /**
-   * @deprecated will be removed in 6.2. Please use {@code DozerBeanMapperBuilder.create().build()}.
-   */
-  @Deprecated
-  public DozerBeanMapper() {
-    this(Collections.emptyList());
-  }
-
-   /**
-   * @deprecated will be removed in 6.2. Please use {@code DozerBeanMapperBuilder.create().withMappingFiles(..).build()}.
-   */
-   @Deprecated
-  public DozerBeanMapper(List<String> mappingFiles) {
-    DozerClassLoader classLoader = RuntimeUtils.isOSGi()
-            ? new OSGiClassLoader(Activator.getBundle().getBundleContext())
-            : new DefaultClassLoader(DozerBeanMapperBuilder.class.getClassLoader());
-    this.globalSettings = new GlobalSettings(classLoader);
-    this.beanContainer = new BeanContainer();
-    this.destBeanCreator = new DestBeanCreator(beanContainer);
-    this.propertyDescriptorFactory = new PropertyDescriptorFactory();
-    this.beanMappingGenerator = new BeanMappingGenerator(beanContainer, destBeanCreator, propertyDescriptorFactory);
-    ClassMapBuilder classMapBuilder = new ClassMapBuilder(
-            beanContainer, destBeanCreator, beanMappingGenerator, propertyDescriptorFactory);
-    this.customMappingsLoader = new CustomMappingsLoader(
-            new MappingsParser(beanContainer, destBeanCreator, propertyDescriptorFactory), classMapBuilder, beanContainer);
-    this.xmlParserFactory = new XMLParserFactory(beanContainer);
-    this.statsMgr = new StatisticsManagerImpl(globalSettings);
-    this.dozerInitializer = new DozerInitializer();
-    this.xmlParser = new XMLParser(beanContainer, destBeanCreator, propertyDescriptorFactory);
-    this.destBeanBuilderCreator = new DestBeanBuilderCreator();
-    this.cacheManager = new DozerCacheManager(statsMgr);
-    this.mappingFiles = new ArrayList<>(mappingFiles);
-    this.customConverters = new ArrayList<>();
-    this.mappingsFileData = new ArrayList<>();
-    this.eventListeners = new ArrayList<>();
-    this.customConvertersWithId = new HashMap<>();
-    init();
-  }
-
   DozerBeanMapper(List<String> mappingFiles,
-                  GlobalSettings globalSettings,
+                  Settings settings,
                   CustomMappingsLoader customMappingsLoader,
                   XMLParserFactory xmlParserFactory,
-                  StatisticsManager statsMgr,
                   DozerInitializer dozerInitializer,
                   BeanContainer beanContainer,
                   XMLParser xmlParser,
@@ -171,12 +131,13 @@ public class DozerBeanMapper implements Mapper {
                   List<MappingFileData> mappingsFileData,
                   List<DozerEventListener> eventListeners,
                   CustomFieldMapper customFieldMapper,
-                  Map<String, CustomConverter> customConvertersWithId) {
-    this.globalSettings = globalSettings;
+                  Map<String, CustomConverter> customConvertersWithId,
+                  ELEngine elEngine,
+                  ElementReader elementReader) {
+    this.settings = settings;
     this.customMappingsLoader = customMappingsLoader;
     this.xmlParserFactory = xmlParserFactory;
-    this.statsMgr = statsMgr;
-    this.cacheManager = new DozerCacheManager(statsMgr);
+    this.cacheManager = new DozerCacheManager();
     this.dozerInitializer = dozerInitializer;
     this.beanContainer = beanContainer;
     this.xmlParser = xmlParser;
@@ -190,6 +151,9 @@ public class DozerBeanMapper implements Mapper {
     this.mappingFiles = new ArrayList<>(mappingFiles);
     this.customFieldMapper = customFieldMapper;
     this.customConvertersWithId = new HashMap<>(customConvertersWithId);
+    this.elEngine = elEngine;
+    this.elementReader = elementReader;
+
     init();
   }
 
@@ -233,41 +197,6 @@ public class DozerBeanMapper implements Mapper {
   }
 
   /**
-   * Sets list of URLs for custom XML mapping files, which are loaded when mapper gets initialized.
-   * It is possible to load files from file system via file: prefix. If no prefix is given mapping files are
-   * loaded from classpath and can be packaged along with the application.
-   *
-   * @param mappingFileUrls URLs referencing custom mapping files
-   * @see java.net.URL
-   * @deprecated will be removed in 6.2. Please use {@code withMappingFiles(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void setMappingFiles(List<String> mappingFileUrls) {
-    checkIfInitialized();
-    this.mappingFiles.clear();
-    this.mappingFiles.addAll(mappingFileUrls);
-  }
-
-  /**
-   * @deprecated will be removed in 6.2. Please use {@code withBeanFactory(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void setFactories(Map<String, BeanFactory> factories) {
-    checkIfInitialized();
-    destBeanCreator.setStoredFactories(factories);
-  }
-
-  /**
-   * @deprecated will be removed in 6.2. Please use {@code withCustomConverter(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void setCustomConverters(List<CustomConverter> customConverters) {
-    checkIfInitialized();
-    this.customConverters.clear();
-    this.customConverters.addAll(customConverters);
-  }
-
-  /**
    * @deprecated will be removed in 6.2. Please do not use {@link DozerBeanMapper} directly, only via {@link Mapper} interface.
    */
   @Deprecated
@@ -284,36 +213,26 @@ public class DozerBeanMapper implements Mapper {
   }
 
   private void init() {
-    dozerInitializer.init(globalSettings, statsMgr, beanContainer, destBeanBuilderCreator, beanMappingGenerator, propertyDescriptorFactory, destBeanCreator);
+    dozerInitializer.init(settings, beanContainer, destBeanBuilderCreator, beanMappingGenerator, propertyDescriptorFactory, destBeanCreator);
 
     log.info("Initializing a new instance of dozer bean mapper.");
 
     // initialize any bean mapper caches. These caches are only visible to the bean mapper instance and
     // are not shared across the VM.
-    cacheManager.addCache(DozerCacheType.CONVERTER_BY_DEST_TYPE.name(), globalSettings.getConverterByDestTypeCacheMaxSize());
-    cacheManager.addCache(DozerCacheType.SUPER_TYPE_CHECK.name(), globalSettings.getSuperTypesCacheMaxSize());
-
-    // stats
-    statsMgr.increment(StatisticType.MAPPER_INSTANCES_COUNT);
+    cacheManager.addCache(DozerCacheType.CONVERTER_BY_DEST_TYPE.name(), settings.getConverterByDestTypeCacheMaxSize());
+    cacheManager.addCache(DozerCacheType.SUPER_TYPE_CHECK.name(), settings.getSuperTypesCacheMaxSize());
   }
 
   public void destroy() {
-    dozerInitializer.destroy(globalSettings);
+    dozerInitializer.destroy(settings);
   }
 
   protected Mapper getMappingProcessor() {
     initMappings();
 
-    Mapper processor = new MappingProcessor(customMappings, globalConfiguration, cacheManager, statsMgr, customConverters,
+    Mapper processor = new MappingProcessor(customMappings, globalConfiguration, cacheManager, customConverters,
             eventManager, customFieldMapper, customConvertersWithId, beanContainer, destBeanCreator, destBeanBuilderCreator,
             beanMappingGenerator, propertyDescriptorFactory);
-
-    // If statistics are enabled, then Proxy the processor with a statistics interceptor
-    if (statsMgr.isStatisticsEnabled()) {
-      processor = (Mapper) Proxy.newProxyInstance(processor.getClass().getClassLoader(),
-              processor.getClass().getInterfaces(),
-              new StatisticsInterceptor(processor, statsMgr));
-    }
 
     return processor;
   }
@@ -347,51 +266,11 @@ public class DozerBeanMapper implements Mapper {
   }
 
   /**
-   * Add mapping XML from InputStream resources for mapping not stored in
-   * files (e.g. from database.) The InputStream will be read immediately to
-   * internally create MappingFileData objects so that the InputStreams may be
-   * closed after the call to this method.
-   *
-     * @param xmlStream Dozer mapping XML InputStream
-     * @deprecated will be removed in 6.2. Please use {@code withXmlMapping(..)} configuration method of {@link DozerBeanMapperBuilder}.
-     */
-    @Deprecated
-    public void addMapping(InputStream xmlStream) {
-    checkIfInitialized();
-    MappingStreamReader fileReader = new MappingStreamReader(xmlParserFactory, xmlParser);
-    MappingFileData mappingFileData = fileReader.read(xmlStream);
-    this.mappingsFileData.add(mappingFileData);
-  }
-
-  /**
-   * Adds API mapping to given mapper instance.
-   *
-   * @param mappingBuilder mappings to be added
-   * @deprecated will be removed in 6.2. Please use {@code withMappingBuilder(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void addMapping(BeanMappingBuilder mappingBuilder) {
-    checkIfInitialized();
-    MappingFileData mappingFileData = mappingBuilder.build(beanContainer, destBeanCreator, propertyDescriptorFactory);
-    this.mappingsFileData.add(mappingFileData);
-  }
-
-  /**
    * @deprecated will be removed in 6.2. Please do not use {@link DozerBeanMapper} directly, only via {@link Mapper} interface.
    */
   @Deprecated
   public List<? extends DozerEventListener> getEventListeners() {
     return Collections.unmodifiableList(eventListeners);
-  }
-
-  /**
-   * @deprecated will be removed in 6.2. Please use {@code withEventListener(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void setEventListeners(List<? extends DozerEventListener> eventListeners) {
-    checkIfInitialized();
-    this.eventListeners.clear();
-    this.eventListeners.addAll(eventListeners);
   }
 
   /**
@@ -402,33 +281,10 @@ public class DozerBeanMapper implements Mapper {
     return customFieldMapper;
   }
 
-  /**
-   * @deprecated will be removed in 6.2. Please use {@code withCustomFieldMapper(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void setCustomFieldMapper(CustomFieldMapper customFieldMapper) {
-    checkIfInitialized();
-    this.customFieldMapper = customFieldMapper;
-  }
-
   @Override
   public MappingMetadata getMappingMetadata() {
     initMappings();
     return new DozerMappingMetadata(customMappings);
-  }
-
-  /**
-   * Converters passed with this method could be further referenced in mappings via its unique id.
-   * Converter instances passed that way are considered stateful and will not be initialized for each mapping.
-   *
-   * @param customConvertersWithId converter id to converter instance map
-   * @deprecated will be removed in 6.2. Please use {@code withCustomConverterWithId(..)} configuration method of {@link DozerBeanMapperBuilder}.
-   */
-  @Deprecated
-  public void setCustomConvertersWithId(Map<String, CustomConverter> customConvertersWithId) {
-    checkIfInitialized();
-    this.customConvertersWithId.clear();
-    this.customConvertersWithId.putAll(customConvertersWithId);
   }
 
   private void checkIfInitialized() {

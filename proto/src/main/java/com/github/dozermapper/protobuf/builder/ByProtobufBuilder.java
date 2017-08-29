@@ -27,13 +27,15 @@ import org.dozer.factory.BeanCreationDirective;
  */
 public class ByProtobufBuilder implements BeanBuilderCreationStrategy {
 
-  public boolean isApplicable(BeanCreationDirective directive) {
-    return Message.class.isAssignableFrom(directive.getActualClass());
-  }
+    public boolean isApplicable(BeanCreationDirective directive) {
+        return Message.class.isAssignableFrom(directive.getActualClass());
+    }
 
-  public BeanBuilder create(BeanCreationDirective directive) {
-    Class<? extends Message> messageClass = (Class<? extends Message>)directive.getActualClass();
-    final Message.Builder protoBuilder = ProtoUtils.getBuilder(messageClass);
-    return new ProtoBeanBuilder(protoBuilder, messageClass);
-  }
+    @SuppressWarnings("unchecked")
+    public BeanBuilder create(BeanCreationDirective directive) {
+        Class<? extends Message> messageClass = (Class<? extends Message>)directive.getActualClass();
+        final Message.Builder protoBuilder = ProtoUtils.getBuilder(messageClass);
+
+        return new ProtoBeanBuilder(protoBuilder, messageClass);
+    }
 }

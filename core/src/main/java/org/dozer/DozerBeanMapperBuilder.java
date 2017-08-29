@@ -31,23 +31,33 @@ import org.dozer.classmap.ClassMapBuilder;
 import org.dozer.classmap.MappingFileData;
 import org.dozer.classmap.generator.BeanMappingGenerator;
 import org.dozer.config.BeanContainer;
-import org.dozer.config.GlobalSettings;
+import org.dozer.config.Settings;
+import org.dozer.config.processors.DefaultSettingsProcessor;
+import org.dozer.config.processors.SettingsProcessor;
+import org.dozer.el.DefaultELEngine;
+import org.dozer.el.ELEngine;
+import org.dozer.el.ELExpressionFactory;
+import org.dozer.el.NoopELEngine;
+import org.dozer.el.TcclELEngine;
 import org.dozer.factory.DestBeanCreator;
 import org.dozer.loader.CustomMappingsLoader;
 import org.dozer.loader.MappingsParser;
 import org.dozer.loader.api.BeanMappingBuilder;
+import org.dozer.loader.xml.ElementReader;
+import org.dozer.loader.xml.ExpressionElementReader;
 import org.dozer.loader.xml.MappingStreamReader;
+import org.dozer.loader.xml.SimpleElementReader;
 import org.dozer.loader.xml.XMLParser;
 import org.dozer.loader.xml.XMLParserFactory;
 import org.dozer.osgi.Activator;
 import org.dozer.osgi.OSGiClassLoader;
 import org.dozer.propertydescriptor.PropertyDescriptorFactory;
-import org.dozer.stats.StatisticsManager;
-import org.dozer.stats.StatisticsManagerImpl;
 import org.dozer.util.DefaultClassLoader;
 import org.dozer.util.DozerClassLoader;
 import org.dozer.util.DozerConstants;
 import org.dozer.util.RuntimeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builds an instance of {@link Mapper}.
@@ -55,6 +65,8 @@ import org.dozer.util.RuntimeUtils;
  * will receive its default value. Please refer to class methods for possible configuration options.
  */
 public final class DozerBeanMapperBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DozerBeanMapperBuilder.class);
 
     private List<String> mappingFiles = new ArrayList<>(1);
     private DozerClassLoader classLoader;
@@ -65,6 +77,9 @@ public final class DozerBeanMapperBuilder {
     private CustomFieldMapper customFieldMapper;
     private Map<String, CustomConverter> customConvertersWithId = new HashMap<>(0);
     private Map<String, BeanFactory> beanFactories = new HashMap<>(0);
+    private SettingsProcessor settingsProcessor;
+    private ELEngine elEngine;
+    private ElementReader elementReader;
 
     private DozerBeanMapperBuilder() {
     }
@@ -250,6 +265,49 @@ public final class DozerBeanMapperBuilder {
     }
 
     /**
+     * Registers a {@link SettingsProcessor} for the mapper. Which can be used to resolve a settings instance.
+     * <p>
+     * By default, {@link DefaultSettingsProcessor} is registered.
+     *
+     * @param processor processor to use
+     * @return modified builder to be further configured.
+     */
+    public DozerBeanMapperBuilder withSettingsProcessor(SettingsProcessor processor) {
+        this.settingsProcessor = settingsProcessor;
+        return this;
+    }
+
+    /**
+     * Registers a {@link ELEngine} for the mapper.
+     * Which can be used to resolve expressions within the defined mappings.
+     * <p>
+     * By default, {@link NoopELEngine} is registered,
+     * unless {@link com.sun.el.ExpressionFactoryImpl} is detected on classpath, then {@link DefaultELEngine}
+     *
+     * @param elEngine elEngine to use
+     * @return modified builder to be further configured.
+     */
+    public DozerBeanMapperBuilder withELEngine(ELEngine elEngine) {
+        this.elEngine = elEngine;
+        return this;
+    }
+
+    /**
+     * Registers a {@link ElementReader} for the mapper.
+     * Which can be used to resolve expressions within the defined XML mappings.
+     * <p>
+     * By default, {@link SimpleElementReader} are registered,
+     * unless {@link com.sun.el.ExpressionFactoryImpl} is detected on classpath, then {@link ExpressionElementReader}
+     *
+     * @param elementReader elementReader to use
+     * @return modified builder to be further configured.
+     */
+    public DozerBeanMapperBuilder withElementReader(ElementReader elementReader) {
+        this.elementReader = elementReader;
+        return this;
+    }
+
+    /**
      * Creates an instance of {@link Mapper}. Mapper is configured according to the current builder state.
      * <p>
      * Subsequent calls of this method will return new instances.
@@ -258,8 +316,13 @@ public final class DozerBeanMapperBuilder {
      */
     public Mapper build() {
         DozerClassLoader classLoader = getClassLoader();
-        GlobalSettings globalSettings = new GlobalSettings(classLoader);
+        Settings settings = getSettings(classLoader);
+        ELEngine elEngine = getELEngine();
+        ElementReader elementReader = getElementReader(elEngine);
+
         BeanContainer beanContainer = new BeanContainer();
+        beanContainer.setElEngine(elEngine);
+        beanContainer.setElementReader(elementReader);
 
         DestBeanCreator destBeanCreator = new DestBeanCreator(beanContainer);
         destBeanCreator.setStoredFactories(beanFactories);
@@ -270,7 +333,6 @@ public final class DozerBeanMapperBuilder {
         CustomMappingsLoader customMappingsLoader = new CustomMappingsLoader(
                 new MappingsParser(beanContainer, destBeanCreator, propertyDescriptorFactory), classMapBuilder, beanContainer);
         XMLParserFactory xmlParserFactory = new XMLParserFactory(beanContainer);
-        StatisticsManager statisticsManager = new StatisticsManagerImpl(globalSettings);
         DozerInitializer dozerInitializer = new DozerInitializer();
         XMLParser xmlParser = new XMLParser(beanContainer, destBeanCreator, propertyDescriptorFactory);
         DestBeanBuilderCreator destBeanBuilderCreator = new DestBeanBuilderCreator();
@@ -280,10 +342,9 @@ public final class DozerBeanMapperBuilder {
         mappingsFileData.addAll(createMappingsWithBuilders(beanContainer, destBeanCreator, propertyDescriptorFactory));
 
         return new DozerBeanMapper(mappingFiles,
-                globalSettings,
+                settings,
                 customMappingsLoader,
                 xmlParserFactory,
-                statisticsManager,
                 dozerInitializer,
                 beanContainer,
                 xmlParser,
@@ -295,7 +356,9 @@ public final class DozerBeanMapperBuilder {
                 mappingsFileData,
                 eventListeners,
                 customFieldMapper,
-                customConvertersWithId);
+                customConvertersWithId,
+                elEngine,
+                elementReader);
     }
 
     private List<MappingFileData> createMappingsWithBuilders(BeanContainer beanContainer, DestBeanCreator destBeanCreator, PropertyDescriptorFactory propertyDescriptorFactory) {
@@ -321,14 +384,45 @@ public final class DozerBeanMapperBuilder {
         if (classLoader == null) {
             if (RuntimeUtils.isOSGi()) {
                 return new OSGiClassLoader(Activator.getBundle().getBundleContext());
-
             } else {
                 return new DefaultClassLoader(DozerBeanMapperBuilder.class.getClassLoader());
             }
-
         } else {
             return classLoader;
         }
     }
 
+    private Settings getSettings(DozerClassLoader classLoader) {
+        if (settingsProcessor == null) {
+            settingsProcessor = new DefaultSettingsProcessor(classLoader);
+            return settingsProcessor.process();
+        } else {
+            return settingsProcessor.process();
+        }
+    }
+
+    private ELEngine getELEngine() {
+        if (elEngine == null) {
+            if (ELExpressionFactory.isSupported()) {
+                if (RuntimeUtils.isOSGi()) {
+                    ClassLoader classLoader = getClass().getClassLoader();
+                    return new TcclELEngine(ELExpressionFactory.newInstance(classLoader), classLoader);
+                } else {
+                    return new DefaultELEngine(ELExpressionFactory.newInstance());
+                }
+            } else {
+                return new NoopELEngine();
+            }
+        } else {
+            return elEngine;
+        }
+    }
+
+    private ElementReader getElementReader(ELEngine elEngine) {
+        if (elementReader == null) {
+            return new ExpressionElementReader(elEngine);
+        } else {
+            return elementReader;
+        }
+    }
 }
